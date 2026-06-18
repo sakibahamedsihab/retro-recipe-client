@@ -9,7 +9,6 @@ export default function HomePage() {
         together.
       </p>
 
-      {/* ইনলাইন ক্লাস দিয়ে তৈরি রেট্রো বাটন: মোটা কালো বর্ডার এবং ড্রপ শ্যাডো */}
       <button className="mt-8 px-8 py-4 font-black text-xl uppercase bg-orange-500 text-stone-900 border-4 border-stone-900 shadow-[6px_6px_0px_0px_rgba(28,25,23,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(28,25,23,1)] transition-all rounded-xl cursor-pointer">
         Browse Recipes
       </button>
