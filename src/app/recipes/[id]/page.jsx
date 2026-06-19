@@ -1,34 +1,35 @@
 import RecipeDetailsClient from "./RecipeDetailsClient";
+import { notFound } from "next/navigation";
 
-// পরবর্তীতে এখানে API কল করে আসল ডেটা আনব। আপাতত ডামি ডেটা।
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
 async function getRecipeDetails(id) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/recipes/${id}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const recipe = await getRecipeDetails(id);
+  if (!recipe) return { title: "Recipe Not Found | Retro RecipeHub" };
   return {
-    _id: id,
-    recipeName: "Retro Pepperoni Pizza",
-    recipeImage: "", // ফাঁকা রাখলাম যাতে ফলব্যাক ক্রিম কালার দেখা যায়
-    category: "Dinner",
-    cuisineType: "Italian",
-    preparationTime: 45,
-    difficultyLevel: "Medium",
-    authorName: "Alex",
-    likesCount: 320,
-    ingredients: [
-      "2 cups all-purpose flour",
-      "1 cup water",
-      "2 tbsp olive oil",
-      "1/2 cup tomato sauce",
-      "1.5 cups mozzarella cheese",
-      "Sliced pepperoni",
-      "1 tsp oregano",
-    ],
-    instructions:
-      "1. Mix flour and water to make the dough.\n2. Roll the dough into a circle.\n3. Spread the tomato sauce evenly over the dough.\n4. Sprinkle mozzarella cheese and place pepperoni slices on top.\n5. Bake in a preheated oven at 400°F (200°C) for 15-20 minutes until the crust is golden and cheese is bubbly.",
+    title: `${recipe.recipeName} | Retro RecipeHub`,
+    description: `${recipe.recipeName} by ${recipe.authorName} – ${recipe.category} recipe.`,
   };
 }
 
 export default async function RecipeDetails({ params }) {
   const { id } = await params;
   const recipe = await getRecipeDetails(id);
+
+  if (!recipe) return notFound();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
