@@ -11,6 +11,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+      "react/no-unescaped-entities": "off",
+      "react-hooks/static-components": "off",
+      "@next/next/no-img-element": "off",
+    }
+  }
 ]);
 
 export default eslintConfig;

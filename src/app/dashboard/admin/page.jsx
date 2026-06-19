@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -19,15 +19,25 @@ import {
 } from "react-icons/fa";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-// ── Tab IDs ──────────────────────────────────────────────────────────────────
 const TABS = ["Overview", "Users", "Recipes", "Reports"];
 
-export default function AdminDashboard() {
+function AdminDashboardInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, isPending } = authClient.useSession();
 
-  const [activeTab, setActiveTab] = useState("Overview");
+  // Read tab from URL param so sidebar links work
+  const tabFromUrl = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    TABS.includes(tabFromUrl) ? tabFromUrl : "Overview"
+  );
+
+  // Keep tab in sync when URL param changes (e.g. sidebar click)
+  useEffect(() => {
+    if (tabFromUrl && TABS.includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
   const [authorized, setAuthorized] = useState(null); // null = loading
   const [toast, setToast] = useState(null);
 
@@ -547,5 +557,17 @@ export default function AdminDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center gap-3 text-xl font-black uppercase p-8 animate-pulse">
+        <FaSpinner className="animate-spin" /> Loading Admin Panel...
+      </div>
+    }>
+      <AdminDashboardInner />
+    </Suspense>
   );
 }
