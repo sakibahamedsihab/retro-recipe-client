@@ -9,8 +9,10 @@ import {
   FaListUl,
   FaSave,
 } from "react-icons/fa";
+import { authClient } from "@/lib/auth-client";
 
 export default function AddRecipeClient() {
+  const { data: session } = authClient.useSession(); // Active user er session niyoar jonno
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     recipeName: "",
@@ -23,27 +25,64 @@ export default function AddRecipeClient() {
     instructions: "",
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!session?.user) {
+      alert("Please login first!");
+      return;
+    }
+
     setLoading(true);
 
-    // Porobortite ekhane back-end API call hobe
-    console.log("Recipe Data:", formData);
+    // Ingredients textarea er data ke line-by-line bhenge array te convert kora
+    const ingredientsArray = formData.ingredients
+      .split("\n")
+      .map((item) => item.trim())
+      .filter((item) => item !== "");
 
-    setTimeout(() => {
+    // Backend e jey data pathano hobe
+    const recipeData = {
+      ...formData,
+      ingredients: ingredientsArray,
+      authorName: session.user.name,
+      authorEmail: session.user.email,
+      likesCount: 0,
+    };
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/recipes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(recipeData),
+        },
+      );
+
+      if (response.ok) {
+        alert("Recipe Added Successfully to Database!");
+        setFormData({
+          recipeName: "",
+          recipeImage: "",
+          category: "",
+          cuisineType: "",
+          preparationTime: "",
+          difficultyLevel: "Easy",
+          ingredients: "",
+          instructions: "",
+        });
+      } else {
+        alert("Failed to add recipe. Please try again.");
+      }
+    } catch (error) {
+      console.error("API Error:", error);
+      alert("Something went wrong connecting to backend!");
+    } finally {
       setLoading(false);
-      alert("Recipe Added Successfully!");
-      setFormData({
-        recipeName: "",
-        recipeImage: "",
-        category: "",
-        cuisineType: "",
-        preparationTime: "",
-        difficultyLevel: "Easy",
-        ingredients: "",
-        instructions: "",
-      });
-    }, 1000);
+    }
   };
 
   return (
