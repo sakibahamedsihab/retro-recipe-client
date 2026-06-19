@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FaUserEdit, FaSave, FaEnvelope, FaCamera } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+import { FaUserEdit, FaSave, FaEnvelope, FaCamera, FaCheckCircle } from "react-icons/fa";
 
 export default function ProfileClient() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -92,14 +99,14 @@ export default function ProfileClient() {
         }
       );
       if (res.ok) {
-        alert("Profile Updated Successfully!");
+        showToast("Profile Updated Successfully!");
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || "Failed to update profile.");
+        showToast(data.message || "Failed to update profile.", "error");
       }
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Something went wrong connecting to server!");
+      showToast("Something went wrong connecting to server!", "error");
     } finally {
       setLoading(false);
     }
@@ -115,6 +122,23 @@ export default function ProfileClient() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl">
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-6 right-6 z-50 px-6 py-3 border-4 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 ${
+              toast.type === "error"
+                ? "bg-red-500 text-white"
+                : "bg-[#FFC900] text-black"
+            }`}
+          >
+            <FaCheckCircle /> {toast.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Header Section */}
       <div className="mb-8 border-b-4 border-black pb-4">
         <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-black flex items-center gap-4">
