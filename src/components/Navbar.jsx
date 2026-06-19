@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
@@ -10,8 +11,42 @@ export default function Navbar() {
   // Better Auth এর হুক ব্যবহার করে সেশন এবং লোডিং স্টেট নেওয়া
   const { data: session, isPending } = authClient.useSession();
 
+  // সেশন চেঞ্জ হলে ব্যাকএন্ডের সাথে JWT সিঙ্ক করার জন্য useEffect
+  useEffect(() => {
+    const syncSession = async () => {
+      if (session?.user) {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/jwt`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              email: session.user.email,
+              name: session.user.name,
+              image: session.user.image || "",
+            }),
+          });
+        } catch (error) {
+          console.error("Failed to sync session with backend:", error);
+        }
+      }
+    };
+    syncSession();
+  }, [session]);
+
   // লগআউট হ্যান্ডলার
   const handleLogout = async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Failed to logout from backend:", error);
+    }
+
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {

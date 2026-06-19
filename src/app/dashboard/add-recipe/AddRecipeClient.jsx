@@ -24,6 +24,37 @@ export default function AddRecipeClient() {
     ingredients: "",
     instructions: "",
   });
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const body = new FormData();
+    body.append("image", file);
+
+    try {
+      const response = await fetch(
+        `https://api.imgbb.com/1/upload?key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`,
+        {
+          method: "POST",
+          body: body,
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setFormData((prev) => ({ ...prev, recipeImage: data.data.url }));
+      } else {
+        alert("Failed to upload image to ImgBB");
+      }
+    } catch (error) {
+      console.error("Image upload error:", error);
+      alert("Error uploading image");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,6 +93,8 @@ export default function AddRecipeClient() {
         },
       );
 
+      const data = await response.json().catch(() => ({}));
+
       if (response.ok) {
         alert("Recipe Added Successfully to Database!");
         setFormData({
@@ -75,7 +108,7 @@ export default function AddRecipeClient() {
           instructions: "",
         });
       } else {
-        alert("Failed to add recipe. Please try again.");
+        alert(data.message || "Failed to add recipe. Please try again.");
       }
     } catch (error) {
       console.error("API Error:", error);
@@ -119,18 +152,28 @@ export default function AddRecipeClient() {
           </div>
           <div>
             <label className="flex items-center gap-2 text-black font-bold uppercase mb-2">
-              <FaImage /> Image URL
+              <FaImage /> Recipe Image (imgbb Upload)
             </label>
             <input
-              type="url"
-              required
-              value={formData.recipeImage}
-              onChange={(e) =>
-                setFormData({ ...formData, recipeImage: e.target.value })
-              }
-              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-[#FFC900] bg-white text-black"
-              placeholder="https://example.com/image.jpg"
+              type="file"
+              accept="image/*"
+              required={!formData.recipeImage}
+              onChange={handleImageUpload}
+              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none bg-white text-black file:mr-4 file:py-1 file:px-3 file:border-2 file:border-black file:bg-[#FFC900] file:text-black file:font-black file:uppercase hover:file:bg-black hover:file:text-white"
             />
+            {uploading ? (
+              <p className="text-xs font-bold text-gray-700 mt-2 uppercase animate-pulse">
+                Uploading to ImgBB...
+              </p>
+            ) : formData.recipeImage ? (
+              <div className="mt-4 border-2 border-black max-w-[200px] h-32 overflow-hidden bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <img
+                  src={formData.recipeImage}
+                  alt="Recipe Preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 

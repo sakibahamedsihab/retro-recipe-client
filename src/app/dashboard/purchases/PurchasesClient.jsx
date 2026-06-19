@@ -1,9 +1,45 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaFileDownload, FaUnlockAlt, FaReceipt } from "react-icons/fa";
 
-export default function PurchasesClient({ purchases }) {
+export default function PurchasesClient() {
+  const [purchases, setPurchases] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPurchases = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payments/purchased-recipes`,
+          {
+            credentials: "include",
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setPurchases(data);
+        }
+      } catch (error) {
+        console.error("Error fetching purchases:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPurchases();
+  }, []);
+
+  const totalSpent = purchases.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="text-xl font-black uppercase animate-pulse p-8">
+        Loading purchased recipes...
+      </div>
+    );
+  }
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header Section */}
@@ -17,7 +53,7 @@ export default function PurchasesClient({ purchases }) {
           </p>
         </div>
         <div className="bg-[#FFF9E6] border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2">
-          <FaReceipt className="text-xl" /> Total Spent: $14.97
+          <FaReceipt className="text-xl" /> Total Spent: ${totalSpent.toFixed(2)}
         </div>
       </div>
 
@@ -35,7 +71,7 @@ export default function PurchasesClient({ purchases }) {
                     {item.category}
                   </span>
                   <span className="text-black font-bold text-sm">
-                    Purchased on: {item.purchaseDate}
+                    Purchased on: {item.paidAt ? new Date(item.paidAt).toLocaleDateString() : ""}
                   </span>
                 </div>
 
@@ -48,10 +84,16 @@ export default function PurchasesClient({ purchases }) {
               </div>
 
               <div className="flex gap-3 mt-auto">
-                <button className="flex-1 bg-black text-white font-black uppercase py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all flex items-center justify-center gap-2 text-sm">
+                <Link
+                  href={`/recipes/${item.recipeId}`}
+                  className="flex-1 bg-black text-white font-black uppercase py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all flex items-center justify-center gap-2 text-sm"
+                >
                   <FaUnlockAlt /> View Full
-                </button>
-                <button className="flex-1 bg-white text-black font-black uppercase py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFC900] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all flex items-center justify-center gap-2 text-sm">
+                </Link>
+                <button 
+                  onClick={() => alert("PDF download feature coming soon!")}
+                  className="flex-1 bg-white text-black font-black uppercase py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFC900] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all flex items-center justify-center gap-2 text-sm cursor-pointer"
+                >
                   <FaFileDownload /> PDF
                 </button>
               </div>
