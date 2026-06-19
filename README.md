@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🍳 Retro Recipe Hub 
 
-## Getting Started
+Welcome to **Retro Recipe Hub** – a nostalgic, bold, and interactive recipe sharing web application built with a modern tech stack. The user interface draws inspiration from **Neobrutalism** and classic retro design, utilizing vibrant color palettes, thick black borders, solid shadows, and snappy micro-animations.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🚀 Tech Stack
+
+- **Framework:** Next.js (App Router)
+- **Styling:** CSS & TailwindCSS v4
+- **Animations:** Framer Motion
+- **Authentication:** Better Auth (Client-side sync with backend via HttpOnly JWT cookies)
+- **Icons:** React Icons
+
+---
+
+## ✨ Features
+
+### 👤 User Features
+- **Interactive Recipe Browsing:** Search, filter by category, and navigate with pagination.
+- **Recipe Detail View:** View ingredients, instructions, cooking time, and author.
+- **Like & Favorite:** Toggle likes and add recipes to your favorite collection.
+- **Flag & Report:** Report recipes that violate guidelines to flag them for admin review.
+- **Recipe Management:** Add, view, edit (with image uploads via imgbb), and delete your own recipes.
+- **Premium Upgrade:** Purchase a premium membership via Stripe checkout to unlock premium features and recipes.
+- **Purchased Recipes:** View and access all premium recipes you have unlocked.
+- **Profile Customization:** Edit your user profile details and upload custom avatars.
+
+### 🛡️ Admin Features (Role-Based)
+- **Security & Authorization Guard:** Custom middleware verification restricts dashboard management routes strictly to admins.
+- **Overview Dashboard:** View site-wide analytics including total users, active recipes, premium members, pending reports, and total revenue.
+- **User Moderation:** View user lists and block/unblock users violating community guidelines.
+- **Recipe Moderation:** Search and delete any recipe from the platform.
+- **Reports Moderation Queue:** Accept and process flagged reports to dismiss them or permanently remove violating recipes.
+
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+Make sure you have Node.js (v18+) and npm installed.
+
+### 1. Clone & Set Up Directory
+Ensure you have the backend server running to handle authentication, payments, and data operations.
+
+### 2. Environment Variables
+Create a `.env` file in the root of the client directory:
+
+```env
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Install Dependencies
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 4. Run the Development Server
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000) in your browser to experience Retro Recipe Hub!
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📁 Directory Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+retro-recipe-client/
+├── public/                 # Static assets
+└── src/
+    ├── app/                # Next.js App Router Pages
+    │   ├── dashboard/      # User & Admin dashboards
+    │   │   ├── admin/      # Admin moderation panel
+    │   │   ├── profile/    # User profile editor
+    │   │   └── ...         # My Recipes, Favorites, Purchases
+    │   ├── login/          # Sign-in page
+    │   ├── register/       # Sign-up page
+    │   └── recipes/        # Recipe browse & detailed views
+    ├── components/         # Reusable UI components (Sidebar, Navbar, Cards)
+    └── lib/                # Auth client and utility functions
+```
