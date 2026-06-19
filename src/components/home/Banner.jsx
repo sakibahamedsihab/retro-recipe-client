@@ -24,13 +24,13 @@ export default function Banner() {
       <div className="flex flex-col sm:flex-row justify-center gap-6">
         <Link
           href="/recipes"
-          className="bg-[#FFC900] text-black font-black uppercase tracking-wider px-8 py-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+          className="bg-[#FDFBF7] text-black font-black uppercase tracking-wider px-8 py-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
         >
           Explore Recipes
         </Link>
         <Link
           href="/register"
-          className="bg-white text-black font-black uppercase tracking-wider px-8 py-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+          className="bg-black text-white font-black uppercase tracking-wider px-8 py-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
         >
           Join the Club
         </Link>

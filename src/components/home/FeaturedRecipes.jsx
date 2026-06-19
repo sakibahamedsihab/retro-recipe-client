@@ -1,7 +1,9 @@
+"use client";
+
+import { motion } from "framer-motion";
 import RecipeCard from "../RecipeCard";
 
 export default function FeaturedRecipes() {
-  // টেস্টিংয়ের জন্য ডামি ডেটা
   const dummyRecipes = [
     {
       _id: "1",
@@ -33,7 +35,13 @@ export default function FeaturedRecipes() {
   ];
 
   return (
-    <section className="my-16 md:my-24">
+    <motion.section
+      initial={{ opacity: 0, y: 50 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="my-16 md:my-24"
+    >
       <div className="flex items-center justify-between mb-8 border-b-4 border-black pb-4">
         <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-black">
           Featured Recipes
@@ -45,6 +53,6 @@ export default function FeaturedRecipes() {
           <RecipeCard key={recipe._id} recipe={recipe} />
         ))}
       </div>
-    </section>
+    </motion.section>
   );
 }

@@ -4,8 +4,8 @@ import { FaClock, FaHeart, FaUserAlt } from "react-icons/fa";
 export default function RecipeCard({ recipe }) {
   return (
     <div className="bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all flex flex-col h-full">
-      {/* Recipe Image Fallback */}
-      <div className="h-48 w-full bg-[#FFC900] border-2 border-black mb-4 flex items-center justify-center overflow-hidden">
+      {/* Recipe Image Fallback - Changed to Light Cream */}
+      <div className="h-48 w-full bg-[#FFF9E6] border-2 border-black mb-4 flex items-center justify-center overflow-hidden">
         {recipe?.recipeImage ? (
           <img
             src={recipe.recipeImage}
@@ -24,7 +24,7 @@ export default function RecipeCard({ recipe }) {
         <span className="bg-[#FFC900] text-black text-xs font-bold px-2 py-1 border border-black uppercase">
           {recipe?.category || "Category"}
         </span>
-        <span className="bg-white text-black text-xs font-bold px-2 py-1 border border-black uppercase">
+        <span className="bg-[#FDFBF7] text-black text-xs font-bold px-2 py-1 border border-black uppercase">
           {recipe?.cuisineType || "Cuisine"}
         </span>
       </div>
