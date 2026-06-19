@@ -78,9 +78,8 @@ export default function AdminReportsPage() {
           <p className="text-xs uppercase tracking-widest font-black text-zinc-400 dark:text-zinc-500">All clear! No pending recipe reports.</p>
         </div>
       ) : (
-        
-        {/* Strictly Sharp Geometric Data Container Framework */}
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-none overflow-hidden">
+          {/* Strictly Sharp Geometric Data Container Framework */}
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse rounded-none">
               <thead>
