@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { FaUtensils, FaHeart, FaStar, FaCrown } from "react-icons/fa";
 import Link from "next/link";
 
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL;
+
 export default function DashboardOverview() {
+  const router = useRouter();
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const [stats, setStats] = useState({
     totalRecipes: 0,
@@ -17,30 +21,33 @@ export default function DashboardOverview() {
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   useEffect(() => {
+    if (!session) return;
+
     const fetchDashboardData = async () => {
       try {
-        // Fetch stats
+        // Fetch user profile first to check role
+        const profileRes = await fetch(`${BACKEND}/api/users/me`, {
+          credentials: "include",
+        });
+        let profileData = null;
+        if (profileRes.ok) {
+          profileData = await profileRes.json();
+        }
+
+        // Redirect admin to admin panel — they have a separate experience
+        if (profileData?.role === "admin") {
+          router.replace("/dashboard/admin");
+          return;
+        }
+
+        // Fetch user stats for normal users
         const statsRes = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/dashboard-stats`,
-          {
-            credentials: "include",
-          }
+          `${BACKEND}/api/users/dashboard-stats`,
+          { credentials: "include" }
         );
         let statsData = { totalRecipes: 0, totalFavorites: 0, totalLikesReceived: 0 };
         if (statsRes.ok) {
           statsData = await statsRes.json();
-        }
-
-        // Fetch user profile to get accurate isPremium status from backend
-        const profileRes = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/me`,
-          {
-            credentials: "include",
-          }
-        );
-        let profileData = null;
-        if (profileRes.ok) {
-          profileData = await profileRes.json();
         }
 
         setStats(statsData);
@@ -52,10 +59,8 @@ export default function DashboardOverview() {
       }
     };
 
-    if (session) {
-      fetchDashboardData();
-    }
-  }, [session]);
+    fetchDashboardData();
+  }, [session, router]);
 
   const handleUpgradeToPremium = async () => {
     setPaymentLoading(true);

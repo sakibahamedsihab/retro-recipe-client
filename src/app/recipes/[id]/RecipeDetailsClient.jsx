@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -13,12 +14,25 @@ import {
   FaUtensils,
   FaFire,
   FaCheckCircle,
+  FaTrash,
+  FaShieldAlt,
 } from "react-icons/fa";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export default function RecipeDetailsClient({ recipe }) {
   const { data: session } = authClient.useSession();
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check role from backend
+  useEffect(() => {
+    if (!session) return;
+    fetch(`${BACKEND_URL}/api/users/me`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setIsAdmin(data.role === "admin"))
+      .catch(() => {});
+  }, [session]);
 
   const [likes, setLikes] = useState(recipe.likesCount || 0);
   const [liked, setLiked] = useState(false);
@@ -214,46 +228,75 @@ export default function RecipeDetailsClient({ recipe }) {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons — different for admin vs normal user */}
           <div className="flex flex-wrap gap-3">
-            {/* Like */}
-            <button
-              id="btn-like"
-              onClick={handleLike}
-              disabled={likeLoading}
-              className={`flex items-center gap-2 font-black uppercase px-4 py-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all disabled:opacity-60 cursor-pointer ${
-                liked
-                  ? "bg-red-500 text-white"
-                  : "bg-white text-black hover:bg-[#FFC900]"
-              }`}
-            >
-              <FaHeart className={liked ? "text-white" : "text-red-500"} />
-              {liked ? "Liked!" : "Like"}
-            </button>
+            {isAdmin ? (
+              /* Admin Actions */
+              <>
+                <div className="flex items-center gap-2 bg-black text-[#FFC900] font-black uppercase px-4 py-2 border-2 border-[#FFC900]">
+                  <FaShieldAlt /> Admin View
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!confirm("Delete this recipe permanently?")) return;
+                    const res = await fetch(`${BACKEND_URL}/api/recipes/${recipe._id}`, {
+                      method: "DELETE",
+                      credentials: "include",
+                    });
+                    if (res.ok) {
+                      router.push("/dashboard/admin");
+                    } else {
+                      alert("Failed to delete recipe.");
+                    }
+                  }}
+                  className="flex items-center gap-2 bg-red-500 text-white font-black uppercase px-4 py-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all cursor-pointer"
+                >
+                  <FaTrash /> Delete Recipe
+                </button>
+              </>
+            ) : (
+              /* Normal User Actions */
+              <>
+                {/* Like */}
+                <button
+                  id="btn-like"
+                  onClick={handleLike}
+                  disabled={likeLoading}
+                  className={`flex items-center gap-2 font-black uppercase px-4 py-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all disabled:opacity-60 cursor-pointer ${
+                    liked
+                      ? "bg-red-500 text-white"
+                      : "bg-white text-black hover:bg-[#FFC900]"
+                  }`}
+                >
+                  <FaHeart className={liked ? "text-white" : "text-red-500"} />
+                  {liked ? "Liked!" : "Like"}
+                </button>
 
-            {/* Favorite */}
-            <button
-              id="btn-favorite"
-              onClick={handleFavorite}
-              disabled={favLoading}
-              className={`flex items-center gap-2 font-black uppercase px-4 py-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all disabled:opacity-60 cursor-pointer ${
-                favorited
-                  ? "bg-[#FFC900] text-black"
-                  : "bg-white text-black hover:bg-[#FFC900]"
-              }`}
-            >
-              <FaBookmark />
-              {favLoading ? "..." : favorited ? "Saved!" : "Favorite"}
-            </button>
+                {/* Favorite */}
+                <button
+                  id="btn-favorite"
+                  onClick={handleFavorite}
+                  disabled={favLoading}
+                  className={`flex items-center gap-2 font-black uppercase px-4 py-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all disabled:opacity-60 cursor-pointer ${
+                    favorited
+                      ? "bg-[#FFC900] text-black"
+                      : "bg-white text-black hover:bg-[#FFC900]"
+                  }`}
+                >
+                  <FaBookmark />
+                  {favLoading ? "..." : favorited ? "Saved!" : "Favorite"}
+                </button>
 
-            {/* Report */}
-            <button
-              id="btn-report"
-              onClick={() => setIsReportModalOpen(true)}
-              className="flex items-center gap-2 bg-black text-white font-black uppercase px-4 py-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all cursor-pointer"
-            >
-              <FaExclamationTriangle className="text-[#FFC900]" /> Report
-            </button>
+                {/* Report */}
+                <button
+                  id="btn-report"
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="flex items-center gap-2 bg-black text-white font-black uppercase px-4 py-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all cursor-pointer"
+                >
+                  <FaExclamationTriangle className="text-[#FFC900]" /> Report
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -286,25 +329,27 @@ export default function RecipeDetailsClient({ recipe }) {
             </p>
           </div>
 
-          {/* Purchase Section */}
-          <div className="mt-12 bg-[#FFC900] border-4 border-black p-8 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <h3 className="text-2xl font-black uppercase mb-4 text-black">
-              Unlock Full Access
-            </h3>
-            <p className="font-medium mb-6">
-              Want to save this recipe permanently to your collection? Purchase
-              it now!
-            </p>
-            <button
-              id="btn-purchase"
-              onClick={handlePurchase}
-              disabled={purchaseLoading}
-              className="bg-black text-white text-xl font-black uppercase px-8 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mx-auto disabled:opacity-60 cursor-pointer"
-            >
-              <FaShoppingCart />
-              {purchaseLoading ? "Redirecting..." : "Buy Recipe for $4.99"}
-            </button>
-          </div>
+          {/* Purchase Section — hidden for admins */}
+          {!isAdmin && (
+            <div className="mt-12 bg-[#FFC900] border-4 border-black p-8 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <h3 className="text-2xl font-black uppercase mb-4 text-black">
+                Unlock Full Access
+              </h3>
+              <p className="font-medium mb-6">
+                Want to save this recipe permanently to your collection? Purchase
+                it now!
+              </p>
+              <button
+                id="btn-purchase"
+                onClick={handlePurchase}
+                disabled={purchaseLoading}
+                className="bg-black text-white text-xl font-black uppercase px-8 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mx-auto disabled:opacity-60 cursor-pointer"
+              >
+                <FaShoppingCart />
+                {purchaseLoading ? "Redirecting..." : "Buy Recipe for $4.99"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
