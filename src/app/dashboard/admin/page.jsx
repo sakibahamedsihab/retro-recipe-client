@@ -16,10 +16,13 @@ import {
   FaShieldAlt,
   FaSpinner,
   FaEye,
+  FaStar,
+  FaEdit,
+  FaReceipt,
 } from "react-icons/fa";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL;
-const TABS = ["Overview", "Users", "Recipes", "Reports"];
+const TABS = ["Overview", "Users", "Recipes", "Reports", "Transactions"];
 
 function AdminDashboardInner() {
   const router = useRouter();
@@ -46,6 +49,13 @@ function AdminDashboardInner() {
   const [users, setUsers] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [reports, setReports] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [recipePage, setRecipePage] = useState(1);
+  const [recipePages, setRecipePages] = useState(1);
+  const [txPage, setTxPage] = useState(1);
+  const [txPages, setTxPages] = useState(1);
+  const [editRecipe, setEditRecipe] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   // Loading states per tab
   const [tabLoading, setTabLoading] = useState(false);
@@ -115,13 +125,15 @@ function AdminDashboardInner() {
           });
           if (res.ok) setUsers(await res.json());
         }
-        if (activeTab === "Recipes" && recipes.length === 0) {
-          const res = await fetch(`${BACKEND}/api/recipes?limit=50&page=1`, {
-            credentials: "include",
-          });
+        if (activeTab === "Recipes") {
+          const res = await fetch(
+            `${BACKEND}/api/admin/recipes?limit=10&page=${recipePage}`,
+            { credentials: "include" }
+          );
           if (res.ok) {
             const data = await res.json();
             setRecipes(data.recipes || []);
+            setRecipePages(data.pages || 1);
           }
         }
         if (activeTab === "Reports" && reports.length === 0) {
@@ -130,12 +142,23 @@ function AdminDashboardInner() {
           });
           if (res.ok) setReports(await res.json());
         }
+        if (activeTab === "Transactions") {
+          const res = await fetch(
+            `${BACKEND}/api/admin/transactions?limit=10&page=${txPage}`,
+            { credentials: "include" }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setTransactions(data.transactions || []);
+            setTxPages(data.pages || 1);
+          }
+        }
       } finally {
         setTabLoading(false);
       }
     };
     loadTab();
-  }, [activeTab, authorized]);
+  }, [activeTab, authorized, recipePage, txPage]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
   const handleToggleBlock = async (userId, isBlocked) => {
@@ -160,6 +183,69 @@ function AdminDashboardInner() {
     } catch {
       showToast("Something went wrong!", "error");
     }
+  };
+
+  const handleToggleFeature = async (recipeId, isFeatured) => {
+    try {
+      const res = await fetch(`${BACKEND}/api/admin/recipes/${recipeId}/feature`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isFeatured: !isFeatured }),
+      });
+      if (res.ok) {
+        setRecipes((prev) =>
+          prev.map((r) =>
+            r._id === recipeId ? { ...r, isFeatured: !isFeatured } : r
+          )
+        );
+        showToast(isFeatured ? "Removed from featured" : "Recipe featured!");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.message || "Failed to update.", "error");
+      }
+    } catch {
+      showToast("Something went wrong!", "error");
+    }
+  };
+
+  const handleEditRecipe = async (e) => {
+    e.preventDefault();
+    if (!editRecipe) return;
+    try {
+      const res = await fetch(`${BACKEND}/api/recipes/${editRecipe._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        setRecipes((prev) =>
+          prev.map((r) =>
+            r._id === editRecipe._id ? { ...r, ...editForm } : r
+          )
+        );
+        setEditRecipe(null);
+        showToast("Recipe updated!");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.message || "Failed to update.", "error");
+      }
+    } catch {
+      showToast("Something went wrong!", "error");
+    }
+  };
+
+  const openEditModal = (recipe) => {
+    setEditRecipe(recipe);
+    setEditForm({
+      recipeName: recipe.recipeName,
+      category: recipe.category,
+      cuisineType: recipe.cuisineType,
+      preparationTime: recipe.preparationTime,
+      difficultyLevel: recipe.difficultyLevel,
+      instructions: recipe.instructions,
+    });
   };
 
   const handleDeleteRecipe = async (recipeId) => {
@@ -421,6 +507,7 @@ function AdminDashboardInner() {
                     <th className="p-4 border-r-4 border-black">Recipe</th>
                     <th className="p-4 border-r-4 border-black">Author</th>
                     <th className="p-4 border-r-4 border-black text-center">Category</th>
+                    <th className="p-4 border-r-4 border-black text-center">Featured</th>
                     <th className="p-4 border-r-4 border-black text-center">Likes</th>
                     <th className="p-4 text-center">Actions</th>
                   </tr>
@@ -453,11 +540,32 @@ function AdminDashboardInner() {
                           {recipe.category}
                         </span>
                       </td>
+                      <td className="p-4 border-r-4 border-black text-center">
+                        {recipe.isFeatured ? (
+                          <FaStar className="text-[#FFC900] text-xl mx-auto" />
+                        ) : (
+                          <span className="text-xs opacity-40">—</span>
+                        )}
+                      </td>
                       <td className="p-4 border-r-4 border-black text-center font-bold text-black">
                         {recipe.likesCount || 0}
                       </td>
                       <td className="p-4 text-center">
-                        <div className="flex justify-center gap-2">
+                        <div className="flex justify-center gap-2 flex-wrap">
+                          <button
+                            onClick={() => handleToggleFeature(recipe._id, recipe.isFeatured)}
+                            className="bg-[#FFC900] p-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all cursor-pointer"
+                            title={recipe.isFeatured ? "Unfeature" : "Feature"}
+                          >
+                            <FaStar className="text-black" />
+                          </button>
+                          <button
+                            onClick={() => openEditModal(recipe)}
+                            className="bg-white p-2 border-2 border-black hover:bg-[#FFC900] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all cursor-pointer"
+                            title="Edit"
+                          >
+                            <FaEdit className="text-black" />
+                          </button>
                           <a
                             href={`/recipes/${recipe._id}`}
                             target="_blank"
@@ -485,6 +593,161 @@ function AdminDashboardInner() {
               )}
             </div>
           )}
+          {recipePages > 1 && !tabLoading && (
+            <div className="flex justify-center gap-4 mt-6">
+              <button
+                onClick={() => setRecipePage((p) => Math.max(1, p - 1))}
+                disabled={recipePage === 1}
+                className="bg-white font-black uppercase px-4 py-2 border-2 border-black disabled:opacity-40 cursor-pointer"
+              >
+                Prev
+              </button>
+              <span className="font-bold py-2">Page {recipePage} of {recipePages}</span>
+              <button
+                onClick={() => setRecipePage((p) => Math.min(recipePages, p + 1))}
+                disabled={recipePage === recipePages}
+                className="bg-white font-black uppercase px-4 py-2 border-2 border-black disabled:opacity-40 cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TRANSACTIONS TAB ───────────────────────────────────────────────── */}
+      {activeTab === "Transactions" && (
+        <div>
+          <p className="font-black uppercase text-black text-sm mb-4 flex items-center gap-2">
+            <FaReceipt /> Payment Transactions
+          </p>
+          {tabLoading ? (
+            <div className="flex justify-center py-16">
+              <FaSpinner className="animate-spin text-3xl" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-[#FFC900] border-b-4 border-black text-black font-black uppercase tracking-wider text-sm">
+                    <th className="p-4 border-r-4 border-black">User</th>
+                    <th className="p-4 border-r-4 border-black text-center">Amount</th>
+                    <th className="p-4 border-r-4 border-black text-center">Date</th>
+                    <th className="p-4 border-r-4 border-black text-center">Status</th>
+                    <th className="p-4">Transaction ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((tx, i) => (
+                    <tr
+                      key={tx._id}
+                      className={`border-b-4 border-black last:border-b-0 ${
+                        i % 2 === 0 ? "bg-[#FFF9E6]" : "bg-white"
+                      }`}
+                    >
+                      <td className="p-4 border-r-4 border-black font-medium text-sm">
+                        {tx.userEmail}
+                      </td>
+                      <td className="p-4 border-r-4 border-black text-center font-bold">
+                        ${tx.amount?.toFixed(2)}
+                      </td>
+                      <td className="p-4 border-r-4 border-black text-center text-sm">
+                        {tx.paidAt ? new Date(tx.paidAt).toLocaleDateString() : "—"}
+                      </td>
+                      <td className="p-4 border-r-4 border-black text-center">
+                        <span className={`text-xs font-black uppercase px-2 py-1 border border-black ${
+                          tx.paymentStatus === "succeeded" ? "bg-green-200" : "bg-red-200"
+                        }`}>
+                          {tx.paymentStatus}
+                        </span>
+                      </td>
+                      <td className="p-4 text-xs font-mono truncate max-w-[200px]">
+                        {tx.transactionId || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {transactions.length === 0 && (
+                <p className="p-8 text-center font-bold uppercase">No transactions yet.</p>
+              )}
+            </div>
+          )}
+          {txPages > 1 && !tabLoading && (
+            <div className="flex justify-center gap-4 mt-6">
+              <button
+                onClick={() => setTxPage((p) => Math.max(1, p - 1))}
+                disabled={txPage === 1}
+                className="bg-white font-black uppercase px-4 py-2 border-2 border-black disabled:opacity-40 cursor-pointer"
+              >
+                Prev
+              </button>
+              <span className="font-bold py-2">Page {txPage} of {txPages}</span>
+              <button
+                onClick={() => setTxPage((p) => Math.min(txPages, p + 1))}
+                disabled={txPage === txPages}
+                className="bg-white font-black uppercase px-4 py-2 border-2 border-black disabled:opacity-40 cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit Recipe Modal */}
+      {editRecipe && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#FDFBF7] border-4 border-black p-8 w-full max-w-lg shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+            <h3 className="text-xl font-black uppercase mb-4 border-b-2 border-black pb-2">
+              Edit Recipe
+            </h3>
+            <form onSubmit={handleEditRecipe} className="space-y-4">
+              <input
+                type="text"
+                value={editForm.recipeName}
+                onChange={(e) => setEditForm({ ...editForm, recipeName: e.target.value })}
+                className="w-full border-4 border-black p-2 font-bold"
+                placeholder="Recipe Name"
+                required
+              />
+              <select
+                value={editForm.category}
+                onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                className="w-full border-4 border-black p-2 font-bold uppercase"
+              >
+                {["Breakfast", "Lunch", "Dinner", "Dessert", "Snacks"].map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={editForm.cuisineType}
+                onChange={(e) => setEditForm({ ...editForm, cuisineType: e.target.value })}
+                className="w-full border-4 border-black p-2"
+                placeholder="Cuisine"
+              />
+              <textarea
+                rows={4}
+                value={editForm.instructions}
+                onChange={(e) => setEditForm({ ...editForm, instructions: e.target.value })}
+                className="w-full border-4 border-black p-2"
+                placeholder="Instructions"
+              />
+              <div className="flex gap-3">
+                <button type="submit" className="flex-1 bg-black text-white font-black uppercase py-2 border-2 border-black cursor-pointer">
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditRecipe(null)}
+                  className="flex-1 bg-white font-black uppercase py-2 border-2 border-black cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

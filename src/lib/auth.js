@@ -1,18 +1,26 @@
 import { betterAuth } from "better-auth";
-import { MongoClient } from "mongodb";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { MongoClient } from "mongodb";
 
-// আপনার .env ফাইলের URI এবং DB Name ব্যবহার করে কানেকশন
+if (!process.env.MONGODB_URI) {
+  throw new Error("Please add MONGODB_URI to environment variables");
+}
+
 const client = new MongoClient(process.env.MONGODB_URI);
-const db = client.db(process.env.AUTH_DB_NAME);
+const db = client.db("retro-recipe-db");
 
 export const auth = betterAuth({
-  database: mongodbAdapter(db),
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
-
-  // ইমেইল এবং পাসওয়ার্ড লগিন এনাবল করা
+  database: mongodbAdapter(db, { client }),
   emailAndPassword: {
     enabled: true,
+  },
+  socialProviders: {
+    google: {
+      clientId:
+        process.env.GOOGLE_CLIENT_ID ||
+        "google_client_id_placeholder.apps.googleusercontent.com",
+      clientSecret:
+        process.env.GOOGLE_CLIENT_SECRET || "google_client_secret_placeholder",
+    },
   },
 });

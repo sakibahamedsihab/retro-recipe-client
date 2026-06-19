@@ -1,31 +1,72 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-export async function fetchAPI(endpoint, options = {}) {
-  const url = `${BASE_URL}${endpoint}`;
+async function request(path, options = {}) {
+  const url = path.startsWith("http") ? path : `${baseURL}${path}`;
 
-  // ডিফল্ট হেডার্স এবং ক্রেডেনশিয়ালস
-  const defaultOptions = {
-    credentials: "include", // ব্যাকএন্ডে টোকেন (HTTPOnly Cookie) পাঠানোর জন্য খুবই গুরুত্বপূর্ণ
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-    ...options,
-  };
+  options.credentials = "include";
 
-  try {
-    const response = await fetch(url, defaultOptions);
+  const headers = { ...options.headers };
+  if (
+    options.body &&
+    typeof options.body === "object" &&
+    !(options.body instanceof FormData)
+  ) {
+    options.body = JSON.stringify(options.body);
+    headers["Content-Type"] = "application/json";
+  }
+  options.headers = headers;
 
-    // রেসপন্স যদি JSON না হয় (যেমন 404 বা 500 HTML), সেক্ষেত্রে ক্র্যাশ এড়ানোর জন্য
-    const data = await response.json().catch(() => ({}));
+  const response = await fetch(url, options);
 
-    if (!response.ok) {
-      throw new Error(data.message || "Something went wrong fetching data");
-    }
+  let data = null;
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    data = await response.text();
+  }
 
-    return data;
-  } catch (error) {
-    console.error("API Fetch Error:", error.message);
+  if (!response.ok) {
+    const error = new Error(
+      data?.message || response.statusText || "Request failed",
+    );
+    error.response = {
+      status: response.status,
+      statusText: response.statusText,
+      data: data,
+    };
     throw error;
   }
+
+  return {
+    data,
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  };
 }
+
+const api = {
+  get: (path, config = {}) => request(path, { method: "GET", ...config }),
+  post: (path, data, config = {}) =>
+    request(path, {
+      method: "POST",
+      body: data,
+      ...config,
+    }),
+  put: (path, data, config = {}) =>
+    request(path, {
+      method: "PUT",
+      body: data,
+      ...config,
+    }),
+  patch: (path, data, config = {}) =>
+    request(path, {
+      method: "PATCH",
+      body: data,
+      ...config,
+    }),
+  delete: (path, config = {}) => request(path, { method: "DELETE", ...config }),
+};
+
+export default api;

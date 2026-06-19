@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   FaUtensils,
   FaImage,
@@ -8,12 +9,17 @@ import {
   FaFire,
   FaListUl,
   FaSave,
+  FaCrown,
 } from "react-icons/fa";
 import { authClient } from "@/lib/auth-client";
 
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL;
+
 export default function AddRecipeClient() {
-  const { data: session } = authClient.useSession(); // Active user er session niyoar jonno
+  const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [recipeCount, setRecipeCount] = useState(0);
   const [formData, setFormData] = useState({
     recipeName: "",
     recipeImage: "",
@@ -25,6 +31,29 @@ export default function AddRecipeClient() {
     instructions: "",
   });
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (!session) return;
+    const loadLimits = async () => {
+      try {
+        const [meRes, recipesRes] = await Promise.all([
+          fetch(`${BACKEND}/api/users/me`, { credentials: "include" }),
+          fetch(`${BACKEND}/api/recipes/my-recipes`, { credentials: "include" }),
+        ]);
+        if (meRes.ok) setUserInfo(await meRes.json());
+        if (recipesRes.ok) {
+          const recipes = await recipesRes.json();
+          setRecipeCount(recipes.length);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadLimits();
+  }, [session]);
+
+  const isPremium = userInfo?.isPremium || userInfo?.role === "admin";
+  const atLimit = !isPremium && recipeCount >= 2;
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -127,6 +156,23 @@ export default function AddRecipeClient() {
         <p className="font-medium text-lg text-black mt-2">
           Share your culinary secret with the world. Fill out the details below.
         </p>
+        {!isPremium && userInfo && (
+          <div className={`mt-4 p-4 border-4 border-black ${atLimit ? "bg-red-100" : "bg-[#FFC900]"}`}>
+            <p className="font-bold uppercase text-sm">
+              Free plan: {recipeCount}/2 recipes used.
+              {atLimit ? (
+                <> Limit reached! <Link href="/dashboard" className="underline">Upgrade to Premium</Link> for unlimited uploads.</>
+              ) : (
+                <> {2 - recipeCount} recipe{2 - recipeCount !== 1 ? "s" : ""} remaining.</>
+              )}
+            </p>
+          </div>
+        )}
+        {isPremium && (
+          <div className="mt-4 p-3 border-4 border-black bg-black text-[#FFC900] inline-flex items-center gap-2 font-black uppercase text-sm">
+            <FaCrown /> Premium — Unlimited recipes
+          </div>
+        )}
       </div>
 
       <form
@@ -291,11 +337,11 @@ export default function AddRecipeClient() {
         <div className="pt-4">
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || atLimit}
             className="w-full flex items-center justify-center gap-3 bg-black text-white font-black uppercase text-lg px-8 py-4 border-4 border-black shadow-[6px_6px_0px_0px_rgba(255,201,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(255,201,0,1)] transition-all disabled:opacity-70"
           >
             <FaSave className="text-2xl text-[#FFC900]" />
-            {loading ? "Publishing Recipe..." : "Publish Recipe"}
+            {loading ? "Publishing Recipe..." : atLimit ? "Upgrade to Add More" : "Publish Recipe"}
           </button>
         </div>
       </form>

@@ -3,183 +3,204 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FaGoogle } from "react-icons/fa";
-import { authClient } from "@/lib/auth-client";
+import { signUp } from "../../lib/auth-client";
+import api from "../../lib/api";
+import { useToast } from "../providers";
+import {
+  User,
+  Mail,
+  Lock,
+  Image as ImageIcon,
+  UserPlus,
+  ArrowRight,
+  Utensils,
+} from "lucide-react";
 
-export default function Register() {
+export default function RegisterPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    image: "",
-    password: "",
-  });
-  const [error, setError] = useState("");
+  const { showToast } = useToast();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [image, setImage] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async (e) => {
+  const validatePassword = (pwd) => {
+    if (pwd.length < 6) return "Password must be at least 6 characters long";
+    if (!/[A-Z]/.test(pwd))
+      return "Password must contain at least one uppercase letter";
+    if (!/[a-z]/.test(pwd))
+      return "Password must contain at least one lowercase letter";
+    return null;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
-    const { name, email, image, password } = formData;
-
-    // রিকোয়ারমেন্ট অনুযায়ী পাসওয়ার্ড ভ্যালিডেশন
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long!");
+    if (!name || !email || !password) {
+      showToast("Name, email, and password are required", "error");
       return;
     }
-    if (!/[A-Z]/.test(password)) {
-      setError("Password must contain at least one uppercase letter!");
-      return;
-    }
-    if (!/[a-z]/.test(password)) {
-      setError("Password must contain at least one lowercase letter!");
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      showToast(passwordError, "error");
       return;
     }
 
     setLoading(true);
-
-    // Better Auth এর মাধ্যমে সাইন আপ
-    const { data, error: authError } = await authClient.signUp.email({
-      email,
-      password,
-      name,
-      image,
-    });
-
-    setLoading(false);
-
-    if (authError) {
-      setError(authError.message || "Registration failed!");
-    } else {
-      // রেজিস্ট্রেশন সফল হলে ড্যাশবোর্ডে রিডাইরেক্ট
-      router.push("/dashboard");
+    try {
+      await signUp.email(
+        {
+          email,
+          password,
+          name,
+          image:
+            image ||
+            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
+          callbackURL: "/dashboard",
+        },
+        {
+          onSuccess: async (ctx) => {
+            try {
+              await api.post("/jwt", {
+                email: ctx.data.user.email,
+                name: ctx.data.user.name,
+                image: ctx.data.user.image,
+              });
+              showToast("Registration successful!", "success");
+              router.push("/dashboard");
+              router.refresh();
+            } catch (syncErr) {
+              console.error("JWT synchronization failed:", syncErr);
+              showToast(
+                "Registration succeeded but session sync failed",
+                "error",
+              );
+            }
+          },
+          onError: (ctx) => {
+            showToast(ctx.error.message || "Registration failed", "error");
+          },
+        },
+      );
+    } catch (err) {
+      console.error(err);
+      showToast("An unexpected error occurred", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full bg-[#FFF9E6] border-4 border-black p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-black uppercase text-black inline-block border-b-4 border-black pb-2">
-            Join the Club
+    <div className="flex flex-col items-center justify-center min-h-[85vh] px-6 py-16 bg-white dark:bg-zinc-950">
+      <div className="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-none p-8 transition-colors">
+        {/* Header Icon Layout */}
+        <div className="flex flex-col items-center gap-3 mb-8 text-center">
+          <div className="border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-none text-zinc-900 dark:text-zinc-50">
+            <Utensils className="h-6 w-6 stroke-[2]" />
+          </div>
+          <h2 className="text-xl font-black text-zinc-900 dark:text-zinc-50 uppercase tracking-tight">
+            Create an account
           </h2>
-          <p className="mt-4 font-medium text-black">
-            Create an account to save and share recipes.
+          <p className="text-xs uppercase tracking-wider font-semibold text-zinc-400 dark:text-zinc-500">
+            Join our platform of culinary creators
           </p>
         </div>
 
-        {/* এরর মেসেজ দেখানোর জন্য */}
-        {error && (
-          <div className="bg-red-100 border-2 border-black p-3 mb-6 font-bold text-red-700 text-sm uppercase">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleRegister} className="space-y-6">
-          <div>
-            <label className="block text-black font-bold uppercase mb-2">
-              Full Name
+        {/* Input Fields Forms */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              Your Name
             </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-[#FFC900] bg-white text-black"
-              placeholder="e.g. Gordon Ramsay"
-            />
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="JOHN DOE"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-zinc-200 bg-transparent text-xs font-semibold uppercase tracking-wider focus:outline-none focus:border-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 rounded-none transition-colors"
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-black font-bold uppercase mb-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
               Email Address
             </label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-[#FFC900] bg-white text-black"
-              placeholder="chef@recipehub.com"
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+              <input
+                type="email"
+                placeholder="NAME@EXAMPLE.COM"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-zinc-200 bg-transparent text-xs font-semibold uppercase tracking-wider focus:outline-none focus:border-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 rounded-none transition-colors"
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-black font-bold uppercase mb-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
               Profile Image URL
             </label>
-            <input
-              type="url"
-              required
-              value={formData.image}
-              onChange={(e) =>
-                setFormData({ ...formData, image: e.target.value })
-              }
-              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-[#FFC900] bg-white text-black"
-              placeholder="https://example.com/image.jpg"
-            />
+            <div className="relative">
+              <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+              <input
+                type="url"
+                placeholder="HTTPS://EXAMPLE.COM/AVATAR.JPG"
+                value={image}
+                onChange={(e) => setImage(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-zinc-200 bg-transparent text-xs font-semibold focus:outline-none focus:border-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 rounded-none transition-colors"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-black font-bold uppercase mb-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
               Password
             </label>
-            <input
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-[#FFC900] bg-white text-black"
-              placeholder="••••••••"
-            />
-            <p className="text-xs font-bold mt-2 text-gray-700">
-              * Min 6 chars, 1 Uppercase, 1 Lowercase required.
-            </p>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+              <input
+                type="password"
+                placeholder="MINIMUM 6 CHARACTERS"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-zinc-200 bg-transparent text-xs font-semibold focus:outline-none focus:border-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 rounded-none transition-colors"
+                required
+              />
+            </div>
           </div>
 
+          {/* Action Trigger Block Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#FFC900] text-black font-black uppercase py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50"
+            className="w-full py-3 px-4 mt-4 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer rounded-none transition-colors"
           >
-            {loading ? "Creating..." : "Create Account"}
+            {loading ? (
+              <div className="h-4 w-4 border-2 border-t-transparent border-current rounded-none animate-spin" />
+            ) : (
+              <>
+                <UserPlus className="h-4 w-4" />
+                <span>Register</span>
+              </>
+            )}
           </button>
         </form>
 
-        <div className="mt-6 flex items-center justify-between">
-          <span className="border-b-2 border-black w-1/5"></span>
-          <span className="text-xs text-center font-bold uppercase text-gray-600">
-            OR
-          </span>
-          <span className="border-b-2 border-black w-1/5"></span>
-        </div>
-
-        <button
-          onClick={async () => {
-            await authClient.signIn.social({
-              provider: "google",
-              callbackURL: "/dashboard",
-            });
-          }}
-          className="mt-6 w-full flex items-center justify-center gap-3 bg-white text-black font-black uppercase py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-        >
-          <FaGoogle className="text-xl text-red-500" /> Sign up with Google
-        </button>
-
-        <p className="mt-8 text-center font-medium text-black">
+        {/* Footer Link section */}
+        <p className="mt-8 text-center text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-bold underline decoration-2 underline-offset-4 hover:text-[#FFC900] transition-colors"
+            className="font-bold text-zinc-900 hover:underline dark:text-zinc-100 inline-flex items-center gap-1"
           >
-            Login here
+            Log in <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </p>
       </div>
