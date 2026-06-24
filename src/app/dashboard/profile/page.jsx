@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "../../../lib/auth-client";
 import api from "../../../lib/api";
 import Loader from "../../../components/Loader";
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 
 export default function ProfileSettingsPage() {
+  const router = useRouter();
   const { data: session, update: updateSession } = useSession();
   const { showToast } = useToast();
 
@@ -62,16 +64,8 @@ export default function ProfileSettingsPage() {
     }
   };
 
-  const handleUpgradeToPremium = async () => {
-    try {
-      const response = await api.post("/payments/create-checkout-session", {
-        type: "premium",
-      });
-      window.location.href = response.data.url;
-    } catch (error) {
-      console.error(error);
-      showToast("Stripe checkout session failed", "error");
-    }
+  const handleUpgradeToPremium = () => {
+    router.push("/dashboard/upgrade");
   };
 
   if (loading) return <Loader />;
@@ -115,8 +109,14 @@ export default function ProfileSettingsPage() {
                 {dbUser?.name}
               </span>
               {isPremium && (
-                <span className="px-2.5 py-0.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-[10px] font-bold uppercase tracking-widest text-zinc-800 dark:text-zinc-300 rounded-none">
-                  Premium
+                <span className={`px-2.5 py-0.5 border text-[10px] font-bold uppercase tracking-widest rounded-none ${
+                  dbUser?.premiumType === "bronze"
+                    ? "bg-amber-100 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900"
+                    : dbUser?.premiumType === "silver"
+                    ? "bg-slate-100 dark:bg-slate-950/20 text-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-900"
+                    : "bg-yellow-100 dark:bg-yellow-950/20 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-900"
+                }`}>
+                  {dbUser?.premiumType ? `${dbUser.premiumType} Premium` : "Premium"}
                 </span>
               )}
             </h2>
@@ -186,7 +186,7 @@ export default function ProfileSettingsPage() {
           </button>
         </form>
 
-        {!isPremium && dbUser?.role !== "admin" && (
+        {dbUser?.role !== "admin" && (!isPremium || (dbUser?.recipeLimit || 0) < 9999) && (
           <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-none p-6 sm:p-8 space-y-6 transition-colors">
             <div className="flex flex-col sm:flex-row items-start gap-4">
               <div className="border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 rounded-none">
@@ -194,13 +194,14 @@ export default function ProfileSettingsPage() {
               </div>
               <div>
                 <h3 className="text-sm font-black uppercase tracking-wide text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
-                  <span>Upgrade to Premium Membership</span>
+                  <span>{isPremium ? "Upgrade Your Membership" : "Upgrade to Premium Membership"}</span>
                   <Sparkles className="h-3.5 w-3.5 text-zinc-400" />
                 </h3>
                 <p className="text-xs uppercase tracking-wider font-semibold text-zinc-400 dark:text-zinc-500 mt-2 leading-relaxed">
-                  Enjoy unlimited recipe creations, a premium verified profile
-                  badge, and support the community for a single one-time
-                  payment.
+                  {isPremium
+                    ? `You are currently on the ${dbUser?.premiumType?.toUpperCase() || "Premium"} plan. Upgrade your plan to increase your recipe posting limit and get a premium verified badge.`
+                    : "Enjoy recipe creations limits based on Bronze, Silver, and Gold tiers, a premium verified profile badge, and support the community."
+                  }
                 </p>
               </div>
             </div>
@@ -214,7 +215,7 @@ export default function ProfileSettingsPage() {
                 onClick={handleUpgradeToPremium}
                 className="w-full sm:w-auto px-6 py-3 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 text-xs font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-0"
               >
-                Get Premium - $14.99
+                {isPremium ? "Upgrade Plan" : "View Plans"}
               </button>
             </div>
           </div>

@@ -16,6 +16,7 @@ function PaymentSuccessContent() {
   const sessionId = searchParams.get("session_id");
   const type = searchParams.get("type");
   const recipeId = searchParams.get("recipeId");
+  const plan = searchParams.get("plan");
 
   const [loading, setLoading] = useState(true);
   const [transaction, setTransaction] = useState(null);
@@ -63,11 +64,11 @@ function PaymentSuccessContent() {
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-none p-6 space-y-4">
           <Award className="h-6 w-6 text-zinc-900 dark:text-zinc-50 mx-auto" />
           <h2 className="font-bold text-sm uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
-            Welcome to Premium Club
+            Welcome to Premium Club ({plan ? plan.toUpperCase() : "PREMIUM"})
           </h2>
           <p className="text-xs uppercase tracking-wider font-semibold text-zinc-400 dark:text-zinc-500 leading-relaxed">
-            Your account has been upgraded to Premium membership. You now have
-            unlimited recipe uploads and a verified chef badge!
+            Your account has been upgraded to {plan ? plan : "Premium"} membership. You now have{" "}
+            {plan === "bronze" ? "up to 5" : plan === "silver" ? "up to 15" : "unlimited"} recipe uploads and a verified chef badge!
           </p>
         </div>
       ) : (

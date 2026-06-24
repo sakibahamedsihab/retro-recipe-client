@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "../../lib/auth-client";
 import api from "../../lib/api";
 import Loader from "../../components/Loader";
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 
 export default function DashboardOverviewPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const { showToast } = useToast();
 
@@ -66,16 +68,8 @@ export default function DashboardOverviewPage() {
     loadStats();
   }, []);
 
-  const handleUpgradeToPremium = async () => {
-    try {
-      const response = await api.post("/payments/create-checkout-session", {
-        type: "premium",
-      });
-      window.location.href = response.data.url;
-    } catch (error) {
-      console.error(error);
-      showToast("Stripe checkout failed. Try again.", "error");
-    }
+  const handleUpgradeToPremium = () => {
+    router.push("/dashboard/upgrade");
   };
 
   if (loading) return <Loader />;
@@ -187,9 +181,15 @@ export default function DashboardOverviewPage() {
               Welcome, {dbUser?.name}!
             </h1>
             {isPremium && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-[10px] font-bold uppercase tracking-widest text-zinc-800 dark:text-zinc-300 rounded-none">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border text-[10px] font-bold uppercase tracking-widest rounded-none ${
+                dbUser?.premiumType === "bronze"
+                  ? "bg-amber-100 dark:bg-amber-950/20 text-amber-800 border-amber-200 dark:border-amber-900"
+                  : dbUser?.premiumType === "silver"
+                  ? "bg-slate-100 dark:bg-slate-950/20 text-slate-800 border-slate-200 dark:border-slate-900"
+                  : "bg-yellow-100 dark:bg-yellow-950/20 text-yellow-800 border-yellow-200 dark:border-yellow-900"
+              }`}>
                 <Award className="h-3.5 w-3.5" />
-                <span>Premium Member</span>
+                <span>{dbUser?.premiumType ? `${dbUser.premiumType} Member` : "Premium Member"}</span>
               </span>
             )}
           </div>
@@ -249,7 +249,7 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
-      {!isPremium && (
+      {(!isPremium || (dbUser?.recipeLimit || 0) < 9999) && (
         <div className="bg-zinc-950 text-white border border-zinc-900 p-8 rounded-none relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="relative z-10 max-w-lg">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-zinc-800 bg-zinc-900 text-zinc-400 text-xs font-bold uppercase tracking-widest rounded-none mb-4">
@@ -257,13 +257,13 @@ export default function DashboardOverviewPage() {
               <span>Become Premium</span>
             </div>
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight mb-2 leading-none">
-              Upgrade to Unlock Unlimited Uploads
+              Upgrade to Unlock Higher Recipe Limits
             </h2>
             <p className="text-zinc-400 text-xs uppercase tracking-wider font-medium leading-relaxed mt-2">
-              Standard accounts are limited to publishing 2 recipes. Upgrade to
-              Premium membership today for a one-time fee of only{" "}
-              <strong>$14.99</strong> to publish unlimited recipes and get a
-              verified premium profile badge!
+              {isPremium 
+                ? `You are currently on the ${dbUser?.premiumType?.toUpperCase() || "Premium"} plan (Limit: ${dbUser?.recipeLimit || 0} recipes). Upgrade to a higher tier plan starting from just $4.99 to increase your limits!`
+                : "Standard accounts are limited to publishing 2 recipes. Choose from Bronze, Silver, or Gold tiers starting at just $4.99 to publish more recipes and get a verified badge!"
+              }
             </p>
           </div>
           <button

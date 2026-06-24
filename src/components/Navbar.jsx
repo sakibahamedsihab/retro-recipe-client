@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "../app/providers";
 import { useSession, signOut } from "../lib/auth-client";
+import api from "../lib/api";
 import {
   Menu,
   X,
@@ -21,6 +22,17 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const { data: session, isPending } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const [dbUser, setDbUser] = useState(null);
+
+  useEffect(() => {
+    if (session) {
+      api.get("/users/me")
+        .then((res) => setDbUser(res.data))
+        .catch((err) => console.error("Error loading user in navbar:", err));
+    } else {
+      setDbUser(null);
+    }
+  }, [session]);
 
   const handleLogout = async () => {
     await signOut();
@@ -101,7 +113,7 @@ export default function Navbar() {
                   Dashboard
                 </Link>
 
-                <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 p-1 bg-zinc-50 dark:bg-zinc-900 rounded-none">
+                <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 p-1 bg-zinc-50 dark:bg-zinc-900 rounded-none relative">
                   {session.user.image ? (
                     <img
                       src={session.user.image}
@@ -116,6 +128,17 @@ export default function Navbar() {
                   <span className="text-xs font-semibold max-w-[90px] truncate pr-1 text-zinc-800 dark:text-zinc-200">
                     {session.user.name}
                   </span>
+                  {dbUser?.isPremium && (
+                    <span className={`absolute -top-2.5 -right-2 px-1 py-0.5 text-[7px] font-black uppercase tracking-widest border rounded-none ${
+                      dbUser.premiumType === "bronze"
+                        ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-900"
+                        : dbUser.premiumType === "silver"
+                        ? "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800"
+                        : "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-900"
+                    }`}>
+                      {dbUser.premiumType || "Prem"}
+                    </span>
+                  )}
                 </div>
 
                 <button
