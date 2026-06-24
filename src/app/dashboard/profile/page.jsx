@@ -13,6 +13,7 @@ import {
   Award,
   Sparkles,
   ShieldCheck,
+  Upload,
 } from "lucide-react";
 
 export default function ProfileSettingsPage() {
@@ -25,6 +26,30 @@ export default function ProfileSettingsPage() {
   const [name, setName] = useState("");
   const [image, setImage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const uploadToImgBB = async (file) => {
+    const apiKey =
+      process.env.NEXT_PUBLIC_IMGBB_API_KEY ||
+      "c8bc238c92a95c80521e422502693246";
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const response = await fetch(
+      `https://api.imgbb.com/1/upload?key=${apiKey}`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+    const data = await response.json();
+    if (data.success) {
+      return data.data.url;
+    } else {
+      throw new Error(data.error?.message || "ImgBB upload failed");
+    }
+  };
 
   useEffect(() => {
     async function loadProfile() {
@@ -51,15 +76,26 @@ export default function ProfileSettingsPage() {
     }
 
     setSaving(true);
+    let finalImageUrl = image;
+
     try {
-      const response = await api.patch("/users/profile", { name, image });
+      if (imageFile) {
+        setUploadingImage(true);
+        finalImageUrl = await uploadToImgBB(imageFile);
+        setUploadingImage(false);
+      }
+
+      const response = await api.patch("/users/profile", { name, image: finalImageUrl });
       setDbUser(response.data);
+      setImage(response.data.image || "");
+      setImageFile(null);
       showToast("Profile updated successfully!", "success");
       await updateSession();
     } catch (error) {
       console.error(error);
       showToast("Failed to update profile", "error");
     } finally {
+      setUploadingImage(false);
       setSaving(false);
     }
   };
@@ -155,27 +191,24 @@ export default function ProfileSettingsPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-              Avatar Image URL
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 flex items-center gap-1">
+              <Upload className="h-3.5 w-3.5 text-zinc-400" />
+              <span>Upload Avatar Image (imgbb)</span>
             </label>
-            <div className="relative">
-              <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
-              <input
-                type="url"
-                placeholder="HTTPS://EXAMPLE.COM/AVATAR.JPG"
-                value={image}
-                onChange={(e) => setImage(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-zinc-200 bg-transparent text-xs font-semibold focus:outline-none focus:border-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 rounded-none transition-colors"
-              />
-            </div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files[0])}
+              className="w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border file:border-zinc-200 dark:file:border-zinc-800 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-zinc-50 dark:file:bg-zinc-900 file:text-zinc-800 dark:file:text-zinc-200 hover:file:bg-zinc-900 hover:file:text-white dark:hover:file:bg-zinc-50 dark:hover:file:text-zinc-950 file:transition-colors cursor-pointer rounded-none"
+            />
           </div>
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || uploadingImage}
             className="w-full mt-2 py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer rounded-none border-0 transition-colors"
           >
-            {saving ? (
+            {saving || uploadingImage ? (
               <div className="h-4 w-4 border-2 border-t-transparent border-current rounded-none animate-spin" />
             ) : (
               <>

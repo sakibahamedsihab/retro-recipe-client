@@ -78,13 +78,17 @@ export default function AddRecipePage() {
       showToast("Please fill in all required fields", "error");
       return;
     }
+    if (!imageFile) {
+      showToast("Please upload an image for the recipe", "error");
+      return;
+    }
     if (ingredients.length === 0) {
       showToast("Please add at least one ingredient", "error");
       return;
     }
 
     setSubmitting(true);
-    let finalImageUrl = imageUrl;
+    let finalImageUrl = "";
 
     try {
       if (imageFile) {
@@ -232,31 +236,18 @@ export default function AddRecipePage() {
         </div>
 
         {/* Media Attach Section layout */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-t border-zinc-200 dark:border-zinc-900 pt-6">
-          <div className="flex flex-col gap-1.5">
+        <div className="border-t border-zinc-200 dark:border-zinc-900 pt-6">
+          <div className="flex flex-col gap-1.5 max-w-md">
             <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 flex items-center gap-1">
               <Upload className="h-3.5 w-3.5 text-zinc-400" />
-              <span>Upload Image (imgbb)</span>
+              <span>Upload Image (imgbb) *</span>
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={handleImageFileChange}
               className="w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border file:border-zinc-200 dark:file:border-zinc-800 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-zinc-50 dark:file:bg-zinc-900 file:text-zinc-800 dark:file:text-zinc-200 hover:file:bg-zinc-900 hover:file:text-white dark:hover:file:bg-zinc-50 dark:hover:file:text-zinc-950 file:transition-colors cursor-pointer rounded-none"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-              Or Direct Image URL
-            </label>
-            <input
-              type="url"
-              placeholder="HTTPS://EXAMPLE.COM/FOOD.JPG"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              disabled={!!imageFile}
-              className="w-full px-4 py-2.5 border border-zinc-200 bg-transparent text-xs font-semibold focus:outline-none focus:border-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 disabled:opacity-50 rounded-none transition-colors"
+              required
             />
           </div>
         </div>
