@@ -42,6 +42,22 @@ export default function DashboardLayout({ children }) {
         api
           .get("/users/me")
           .then((res) => {
+            if (res.data.email !== session.user.email) {
+              console.log("Token email mismatch, syncing JWT...");
+              return api
+                .post("/jwt", {
+                  email: session.user.email,
+                  name: session.user.name,
+                  image: session.user.image,
+                })
+                .then(() => {
+                  return api.get("/users/me");
+                })
+                .then((newRes) => {
+                  setDbUser(newRes.data);
+                  setLoadingUser(false);
+                });
+            }
             setDbUser(res.data);
             loadingUser && setLoadingUser(false);
           })
