@@ -84,6 +84,7 @@ export default function RecipeDetailsPage({ params: paramsPromise }) {
   const isAuthor = session?.user?.email === recipe.authorEmail;
   const isAdmin = session?.user?.role === "admin";
   const canViewInstructions = isAuthor || isAdmin || purchased;
+  const hasLiked = recipe?.likedBy?.includes(session?.user?.email);
 
   const handleLike = async () => {
     if (!session) {
@@ -93,11 +94,19 @@ export default function RecipeDetailsPage({ params: paramsPromise }) {
     }
     try {
       const response = await api.post(`/recipes/${recipeId}/like`);
-      setRecipe({ ...recipe, likesCount: response.data.likesCount });
-      showToast("Recipe liked!", "success");
+      setRecipe({
+        ...recipe,
+        likesCount: response.data.likesCount,
+        likedBy: response.data.likedBy,
+      });
+      if (response.data.liked) {
+        showToast("Recipe liked!", "success");
+      } else {
+        showToast("Recipe unliked!", "info");
+      }
     } catch (error) {
       console.error(error);
-      showToast("Error liking recipe", "error");
+      showToast("Error updating like state", "error");
     }
   };
 
@@ -211,9 +220,13 @@ export default function RecipeDetailsPage({ params: paramsPromise }) {
           <div className="flex items-center gap-2">
             <button
               onClick={handleLike}
-              className="px-4 py-2 border border-zinc-200 hover:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-100 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer bg-transparent rounded-none text-zinc-800 dark:text-zinc-200"
+              className={`px-4 py-2 border flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded-none ${
+                hasLiked
+                  ? "bg-zinc-900 border-zinc-900 text-white dark:bg-zinc-50 dark:border-zinc-50 dark:text-zinc-950"
+                  : "border-zinc-200 hover:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-100 text-zinc-800 dark:text-zinc-200 bg-transparent"
+              }`}
             >
-              <Heart className="h-3.5 w-3.5" />
+              <Heart className={`h-3.5 w-3.5 ${hasLiked ? "fill-current text-red-500 dark:text-red-400" : ""}`} />
               <span>{recipe.likesCount} Likes</span>
             </button>
 
